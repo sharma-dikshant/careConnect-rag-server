@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
+from urllib.parse import urlparse, unquote
+import os
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas import IngestRequest, QueryRequest, SearchResult
@@ -16,12 +18,23 @@ logger = logging.getLogger(__name__)
 def ingest_document(request: IngestRequest, db: Session = Depends(get_db)):
     try:
         # Await S3 download (blocking for now is fine for MVP, async boto3 is complex)
-        file_obj = s3_service.download_file(request.bucket_name, request.s3_key)
+        file_source = ""
+        if not request.file_url:
+            raise HTTPException(status_code=400, detail="file_url is required")
+
+        # Download from Presigned URL
+        file_obj = s3_service.download_file_from_url(request.file_url)
         
-        if request.s3_key.lower().endswith(".pdf"):
+        # Extract filename from URL for validation and metadata
+        parsed_url = urlparse(request.file_url)
+        path = unquote(parsed_url.path)
+        file_source = os.path.basename(path)
+
+        
+        if file_source.lower().endswith(".pdf"):
             text = pdf_parser.extract_text(file_obj)
         else:
-           raise HTTPException(status_code=400, detail="Only PDF files are supported currently")
+           raise HTTPException(status_code=400, detail=f"Only PDF files are supported currently. Got: {file_source}")
            
         if not text:
             raise HTTPException(status_code=400, detail="Could not extract text from document")
@@ -38,10 +51,10 @@ def ingest_document(request: IngestRequest, db: Session = Depends(get_db)):
             embeddings=embeddings,
             doctor_id=request.doctor_id,
             patient_id=request.patient_id,
-            source_file=request.s3_key
+            source_file=file_source
         )
         
-        return {"status": "success", "chunks_processed": len(chunks)}
+        return {"status": "success", "chunks_processed": len(chunks), "source_file": file_source}
         
     except Exception as e:
         logger.error(f"Ingestion failed: {str(e)}")

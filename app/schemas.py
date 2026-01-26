@@ -2,8 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 class IngestRequest(BaseModel):
-    s3_key: str
-    bucket_name: str
+    file_url: str
     doctor_id: str
     patient_id: Optional[str] = None
 
