@@ -3,12 +3,13 @@ from urllib.parse import urlparse, unquote
 import os
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.schemas import IngestRequest, QueryRequest, SearchResult
+from app.schemas import IngestRequest, QueryRequest, SearchResult, QueryResponse
 from app.services.s3_service import s3_service
 from app.services.pdf_parser import pdf_parser
 from app.services.chunking import text_chunker
 from app.services.embedding import embedding_service
 from app.services.vector_store import vector_store_service
+from app.services.llm_service import llm_service
 import logging
 
 router = APIRouter()
@@ -61,7 +62,7 @@ def ingest_document(request: IngestRequest, db: Session = Depends(get_db)):
         # If it's just a key error or something, 404 might be better, but 500 is safe catch-all
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/query", response_model=list[SearchResult])
+@router.post("/query", response_model=QueryResponse)
 def query_documents(request: QueryRequest, db: Session = Depends(get_db)):
     try:
         query_embedding = embedding_service.get_query_embedding(request.query)
@@ -74,14 +75,20 @@ def query_documents(request: QueryRequest, db: Session = Depends(get_db)):
             limit=request.limit
         )
         
-        response = []
+        # Extract content for LLM context
+        context = [res.content for res in results]
+        
+        # Generate Answer
+        answer = llm_service.generate_answer(request.query, context)
+        print(answer)
+        sources = []
         for res in results:
-            response.append(SearchResult(
+            sources.append(SearchResult(
                 content=res.content,
                 source_file=res.source_file
             ))
             
-        return response
+        return QueryResponse(answer=answer, sources=sources)
 
     except Exception as e:
         logger.error(f"Query failed: {str(e)}")

@@ -11,8 +11,8 @@ class DocumentChunk(Base):
     patient_id = Column(String, index=True, nullable=True)
     
     content = Column(Text, nullable=False)
-    # Gemini text-embedding-004 is 768 dimensions
-    embedding = Column(Vector(768)) 
+    # Gemini text-embedding-001 is 3072 dimensions
+    embedding = Column(Vector(3072)) 
     
     source_file = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)

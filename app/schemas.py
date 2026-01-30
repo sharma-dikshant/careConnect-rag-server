@@ -15,3 +15,7 @@ class QueryRequest(BaseModel):
 class SearchResult(BaseModel):
     content: str
     source_file: str
+
+class QueryResponse(BaseModel):
+    answer: str
+    sources: list[SearchResult]

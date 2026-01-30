@@ -5,7 +5,7 @@ psycopg[binary]
 pgvector
 boto3
 pymupdf
-google-generativeai
+google-genai
 python-multipart
 pydantic-settings
 python-dotenv
