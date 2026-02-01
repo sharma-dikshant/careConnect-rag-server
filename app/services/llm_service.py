@@ -18,7 +18,7 @@ class LLMService:
         context_str = "\n\n".join(context)
         
         prompt = f"""You are a helpful assistant for CareConnect. 
-                    Answer the user's question using ONLY the context provided below. 
+                    Answer the user's question using the context provided below. 
                     Context:
                     {context_str}
 

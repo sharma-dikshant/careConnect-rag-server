@@ -15,6 +15,11 @@ import logging
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+
+@router.get("/health")
+def health_check():
+    return {"status": "healthy"}
+
 @router.post("/ingest")
 def ingest_document(request: IngestRequest, db: Session = Depends(get_db)):
     try:
