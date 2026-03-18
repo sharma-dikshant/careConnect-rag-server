@@ -1,0 +1,117 @@
+version: "3.8"
+
+services:
+  # ---------- Backend DB ----------
+  postgres:
+    image: postgres:15
+    container_name: cc-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-dikshant}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-care_connect}
+    ports:
+      - "5434:5432"
+    volumes:
+      - backend_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-dikshant} -d ${DB_NAME:-care_connect}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cc-network
+
+  # ---------- AI DB ----------
+  rag-db:
+    image: pgvector/pgvector:pg16
+    container_name: cc-rag-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-ragdb}
+    ports:
+      - "5436:5432"
+    volumes:
+      - rag_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-user}", "-d", "${POSTGRES_DB:-ragdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cc-network
+
+  # ---------- Backend ----------
+  backend:
+    image: dikshant04/careconnect-backend:latest
+    container_name: cc-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./backend/.env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME:-dikshant}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-care_connect}
+      BOT_SERVER_BASE_URL: http://ai-server:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cc-network
+
+  # ---------- AI Server ----------
+  ai-server:
+    image: dikshant04/careconnect-ai:latest
+    container_name: cc-ai
+    restart: unless-stopped
+    ports:
+      - "8080:8000"
+    env_file:
+      - ./rag-server/.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-ragdb}
+      DATABASE_HOST: rag-db
+      DATABASE_PORT: 5432
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    depends_on:
+      rag-db:
+        condition: service_healthy
+    networks:
+      - cc-network
+
+  # ---------- Frontend ----------
+  frontend:
+    image: dikshant04/careconnect-frontend:latest
+    container_name: cc-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    env_file:
+      - ./frontend/.env
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://backend:3000}
+    depends_on:
+      - backend
+    networks:
+      - cc-network
+
+# ---------- Volumes ----------
+volumes:
+  backend_db:
+  rag_db:
+
+# ---------- Network ----------
+networks:
+  cc-network:
+    driver: bridge
