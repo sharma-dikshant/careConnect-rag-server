@@ -84,9 +84,9 @@ Create a `.env` file in the root directory (using `example.env` as a template) a
 ```env
 # Database Configuration
 POSTGRES_USER=user
-POSTGRES_PASSWORD=password
+POSTGRES_PASSWORD=postgres
 POSTGRES_DB=ragdb
-DATABASE_HOST=db
+DATABASE_HOST=rag-db
 DATABASE_PORT=5432
 
 # AWS S3 Configuration
@@ -101,7 +101,7 @@ GEMINI_API_KEY=your_gemini_api_key
 ### 3. Build and Run
 Start the entire stack (PostgreSQL + API) seamlessly via Docker:
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 *The API will be available at `http://localhost:8000` (`uvicorn` default port locally) or `http://localhost:8080` depending on your docker compose mapping.*
 
