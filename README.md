@@ -15,15 +15,15 @@
 
 The **CareConnect RAG Service** is a dedicated microservice built to process, index, and retrieve medical documents (such as PDFs, lab reports, and patient records) using advanced AI capabilities. 
 
-Built with **FastAPI**, **PostgreSQL (`pgvector`)**, and **Google Gemini Embeddings**, this service provides sub-second semantic search. It securely downloads documents from **AWS S3**, converts their content into high-quality vector embeddings, and ensures complete multi-tenancy isolation between different doctors and patients.
+Built with **FastAPI**, **PostgreSQL (`pgvector`)**, and **Google Gemini Embeddings**, this service provides sub-second semantic search. It securely downloads documents from **AWS S3** via presigned URLs, converts their content into high-quality vector embeddings, and ensures complete multi-tenancy isolation between different doctors and patients.
 
 ## ✨ Key Features
 
-- **📄 Automated Document Ingestion**: Fetches medical PDFs directly from AWS S3, extracts text using PyMuPDF, and robustly chunks content.
-- **🧠 Advanced Vector Embeddings**: Leverages Google Generative AI (`models/text-embedding-004`) to generate dense semantic vectors.
-- **⚡ Lightning-Fast Semantic Search**: Utilizes PostgreSQL with `pgvector` for efficient exact and approximate nearest-neighbor search.
+- **📄 Automated Document Ingestion**: Fetches medical PDFs securely from S3, extracts text using PyMuPDF, and robustly chunks content.
+- **🧠 Advanced Vector Embeddings**: Leverages Google Generative AI to generate dense semantic vectors for precise information retrieval.
+- **⚡ Lightning-Fast Semantic Search**: Utilizes PostgreSQL with `pgvector` for efficient approximate nearest-neighbor search.
 - **🔒 Multi-tenant Security**: Hardened document isolation by strictly filtering queries based on `Doctor ID` and `Patient ID`.
-- **🐳 Fully Containerized**: Ships with a ready-to-use Docker environment for frictionless deployment.
+- **🐳 Fully Containerized**: Ships with a ready-to-use Docker environment for frictionless deployment and local testing.
 
 ## 🏗️ Architecture
 
@@ -63,7 +63,7 @@ careConnect-rag-server/
 ├── docker-compose.yml  # Docker environment orchestration
 ├── Dockerfile          # Container build instructions
 ├── requirements.txt    # Python dependencies
-└── .env                # Environment variables
+└── example.env         # Environment variables template
 ```
 
 ## 🚀 Getting Started
@@ -80,7 +80,7 @@ cd careConnect-rag-server
 ```
 
 ### 2. Configure Environment
-Create a `.env` file in the root directory and configure the secrets:
+Create a `.env` file in the root directory (using `example.env` as a template) and configure the secrets:
 ```env
 # Database Configuration
 POSTGRES_USER=user
@@ -103,27 +103,44 @@ Start the entire stack (PostgreSQL + API) seamlessly via Docker:
 ```bash
 docker compose up --build
 ```
-*The API will be available at `http://localhost:8080` (mapped from container port 8000).*
+*The API will be available at `http://localhost:8000` (`uvicorn` default port locally) or `http://localhost:8080` depending on your docker compose mapping.*
+
+You can also run locally without docker:
+```bash
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
 
 ## 🔌 API Reference
 
+### Health Check
+Validates if the API is running correctly.
+
+- **URL**: `/health`
+- **Method**: `GET`
+- **Response**:
+```json
+{
+  "status": "healthy"
+}
+```
+
 ### 1. Ingest Document
-Downloads a PDF from S3, generates embeddings, and indexes them in the vector database.
+Downloads a PDF from a given URL (e.g., S3 presigned URL), parses its contents, generates vectorized embeddings, and indexes them in the Postgres pgvector database.
 
 - **URL**: `/ingest`
 - **Method**: `POST`
 - **Payload**:
 ```json
 {
-  "bucket_name": "careconnect-medical-records",
-  "s3_key": "reports/123/patient_456_blood_test.pdf",
+  "file_url": "https://s3.amazonaws.com/your-bucket/reports/123/blood_test.pdf",
   "doctor_id": "doc-123",
   "patient_id": "pat-456"
 }
 ```
 
 ### 2. Semantic Query
-Searches the vector database for text segments semantically similar to the prompt.
+Searches the vector database for text segments semantically similar to the prompt and returns an AI-generated answer based on the context.
 
 - **URL**: `/query`
 - **Method**: `POST`
@@ -134,6 +151,18 @@ Searches the vector database for text segments semantically similar to the promp
   "doctor_id": "doc-123",
   "patient_id": "pat-456",
   "limit": 5
+}
+```
+- **Response**:
+```json
+{
+  "answer": "The patient's cholesterol is 180 mg/dL based on the recent test report.",
+  "sources": [
+    {
+      "content": "...Total Cholesterol: 180 mg/dL...",
+      "source_file": "blood_test.pdf"
+    }
+  ]
 }
 ```
 
