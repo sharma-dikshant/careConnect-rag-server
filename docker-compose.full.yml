@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-care_connect}
     ports:
-      - "5434:5432"
+      - "5435:5432"
     volumes:
       - backend_db:/var/lib/postgresql/data
     healthcheck:
@@ -51,7 +51,7 @@ services:
     ports:
       - "3000:3000"
     env_file:
-      - ./backend/.env
+      - .env
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -73,7 +73,7 @@ services:
     ports:
       - "8080:8000"
     env_file:
-      - ./rag-server/.env
+      - .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -96,9 +96,9 @@ services:
     container_name: cc-frontend
     restart: unless-stopped
     ports:
-      - "5173:80"
+      - "5174:80"
     env_file:
-      - ./frontend/.env
+      - .env
     environment:
       VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://backend:3000}
     depends_on:
