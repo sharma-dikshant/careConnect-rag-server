@@ -1,129 +1,141 @@
-# CareConnect RAG Service
+<div align="center">
+  <h1>🏥 CareConnect RAG Service</h1>
+  <p><i>A powerful Retrieval-Augmented Generation (RAG) engine for CareConnect</i></p>
 
-A Retrieval-Augmented Generation (RAG) service for CareConnect, built with FastAPI, PostgreSQL (pgvector), and Google Gemini Embeddings. This service processes medical documents (PDFs) from AWS S3, generates embeddings, and enables semantic search for relevant context.
+  ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
+  ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+  ![Gemini](https://img.shields.io/badge/Google%20Gemini-8E75B2?style=for-the-badge&logo=google&logoColor=white)
+  ![AWS S3](https://img.shields.io/badge/AWS%20S3-569A31?style=for-the-badge&logo=amazons3&logoColor=white)
+  ![Docker](https://img.shields.io/badge/docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+</div>
 
-## Features
+---
 
-- **Document Ingestion**: Downloads PDFs from AWS S3, extracts text, and chunks content.
-- **Vector Embeddings**: Uses Google Gemini (`models/text-embedding-004`) to generate high-quality text embeddings.
-- **Semantic Search**: Stores and retrieves context using PostgreSQL with `pgvector` extension.
-- **Multi-tenancy Support**: Isolates documents by Doctor ID and Patient ID.
+## 📖 Overview
 
-## Tech Stack
+The **CareConnect RAG Service** is a dedicated microservice built to process, index, and retrieve medical documents (such as PDFs, lab reports, and patient records) using advanced AI capabilities. 
 
-- **Framework**: FastAPI
-- **Database**: PostgreSQL 16 + pgvector
-- **ORM**: SQLAlchemy
-- **Embeddings**: Google Generative AI (Gemini)
-- **PDF Processing**: PyMuPDF
-- **Storage**: AWS S3
-- **Containerization**: Docker & Docker Compose
+Built with **FastAPI**, **PostgreSQL (`pgvector`)**, and **Google Gemini Embeddings**, this service provides sub-second semantic search. It securely downloads documents from **AWS S3**, converts their content into high-quality vector embeddings, and ensures complete multi-tenancy isolation between different doctors and patients.
 
-## Folder Structure
+## ✨ Key Features
 
+- **📄 Automated Document Ingestion**: Fetches medical PDFs directly from AWS S3, extracts text using PyMuPDF, and robustly chunks content.
+- **🧠 Advanced Vector Embeddings**: Leverages Google Generative AI (`models/text-embedding-004`) to generate dense semantic vectors.
+- **⚡ Lightning-Fast Semantic Search**: Utilizes PostgreSQL with `pgvector` for efficient exact and approximate nearest-neighbor search.
+- **🔒 Multi-tenant Security**: Hardened document isolation by strictly filtering queries based on `Doctor ID` and `Patient ID`.
+- **🐳 Fully Containerized**: Ships with a ready-to-use Docker environment for frictionless deployment.
+
+## 🏗️ Architecture
+
+```mermaid
+graph TD
+    Client[Client / Main API] -->|POST /ingest| RAG_API(FastAPI RAG Service)
+    Client -->|POST /query| RAG_API
+    
+    RAG_API -->|1. Fetch PDF| S3[(AWS S3)]
+    RAG_API -->|2. Extract & Chunk| PyMuPDF[PyMuPDF Parser]
+    PyMuPDF -->|3. Text Chunks| Gemini[Google Gemini API]
+    Gemini -->|4. Vector Embeddings| RAG_API
+    
+    RAG_API -->|5. Store / Query| DB[(PostgreSQL + pgvector)]
 ```
-careConnect-rag/
+
+## 💻 Tech Stack
+
+- **Core**: Python 3.10+, FastAPI, Uvicorn
+- **AI/ML**: Google Generative AI SDK (Gemini), PyMuPDF
+- **Database**: PostgreSQL 16, SQLAlchemy, `pgvector`
+- **Cloud/Infra**: AWS S3 (boto3), Docker, Docker Compose
+
+## 📁 Project Structure
+
+```text
+careConnect-rag-server/
 ├── app/
-│   ├── api/            # API Routes
-│   ├── services/       # Business logic (PDF parser, Embeddings, Vector Store)
-│   ├── models.py       # Database models
-│   ├── schemas.py      # Pydantic schemas
-│   ├── database.py     # Database connection
+│   ├── api/            # FastAPI route handlers
+│   ├── services/       # Core business logic, parsers, and AWS integrations
+│   ├── models.py       # SQLAlchemy ORM models
+│   ├── schemas.py      # Pydantic validation schemas
+│   ├── database.py     # DB connection and session management
 │   ├── config.py       # Configuration & Env vars
-│   └── main.py         # Application entrypoint
-├── docker-compose.yml  # Docker orchestration
-├── Dockerfile          # App container image
+│   └── main.py         # Application factory and entrypoint
+├── test_ingest.py      # Test scripts for ingestion
+├── docker-compose.yml  # Docker environment orchestration
+├── Dockerfile          # Container build instructions
 ├── requirements.txt    # Python dependencies
 └── .env                # Environment variables
 ```
 
-## Setup Guide
+## 🚀 Getting Started
 
 ### Prerequisites
-
-- Docker & Docker Desktop
-- AWS Credentials (access to S3 bucket)
+- [Docker](https://www.docker.com/) and Docker Compose
+- AWS IAM Credentials with S3 Read access
 - Google Gemini API Key
 
-### 1. Clone the Repository
-
+### 1. Clone & Setup
 ```bash
-git clone <repository-url>
-cd careConnect-rag
+git clone https://github.com/sharma-dikshant/careConnect-rag-server.git
+cd careConnect-rag-server
 ```
 
 ### 2. Configure Environment
-
-Create a `.env` file in the root directory:
-
+Create a `.env` file in the root directory and configure the secrets:
 ```env
-# Database
+# Database Configuration
 POSTGRES_USER=user
 POSTGRES_PASSWORD=password
 POSTGRES_DB=ragdb
 DATABASE_HOST=db
 DATABASE_PORT=5432
 
-# AWS S3
-AWS_ACCESS_KEY_ID=your_aws_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret
+# AWS S3 Configuration
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
 AWS_REGION=us-east-1
 
-# Google Gemini
+# AI Platform
 GEMINI_API_KEY=your_gemini_api_key
 ```
 
-### 3. Run with Docker Compose
-
+### 3. Build and Run
+Start the entire stack (PostgreSQL + API) seamlessly via Docker:
 ```bash
 docker compose up --build
 ```
-The API will be available at `http://localhost:8080` (mapped from container port 8000).
+*The API will be available at `http://localhost:8080` (mapped from container port 8000).*
 
-## API Usage
+## 🔌 API Reference
 
-### Ingest Document
+### 1. Ingest Document
+Downloads a PDF from S3, generates embeddings, and indexes them in the vector database.
 
-**Endpoint**: `POST /ingest`
-
-Downloads a file from S3, processes it, and stores embeddings.
-
-**Request Body**:
+- **URL**: `/ingest`
+- **Method**: `POST`
+- **Payload**:
 ```json
 {
-  "bucket_name": "my-bucket",
-  "s3_key": "path/to/report.pdf",
+  "bucket_name": "careconnect-medical-records",
+  "s3_key": "reports/123/patient_456_blood_test.pdf",
   "doctor_id": "doc-123",
   "patient_id": "pat-456"
 }
 ```
 
-### Query Documents
+### 2. Semantic Query
+Searches the vector database for text segments semantically similar to the prompt.
 
-**Endpoint**: `POST /query`
-
-Searches for relevant context based on a natural language query.
-
-**Request Body**:
+- **URL**: `/query`
+- **Method**: `POST`
+- **Payload**:
 ```json
 {
-  "query": "What are the patient's symptoms?",
+  "query": "What are the patient's cholesterol levels?",
   "doctor_id": "doc-123",
   "patient_id": "pat-456",
   "limit": 5
 }
 ```
 
-## How It Works
-
-1.  **Ingestion**:
-    *   The service downloads the specified PDF from S3.
-    *   `PyMuPDF` extracts raw text from the file.
-    *   The text is split into overlapping chunks (default 1000 chars).
-    *   Each chunk is passed to Google Gemini to generate a vector embedding.
-    *   The chunk text and its vector are stored in PostgreSQL.
-
-2.  **Retrieval**:
-    *   The user's query is converted into a vector embedding.
-    *   `pgvector` calculates the cosine distance between the query vector and stored document vectors.
-    *   The most similar text chunks are returned as usage context (e.g., for an LLM to generate an answer).
+## 🤝 Contributing
+Contributions, issues, and feature requests are welcome! Feel free to check the issues page.
