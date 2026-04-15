@@ -14,7 +14,15 @@ services:
     volumes:
       - rag_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-user}", "-d", "${POSTGRES_DB:-ragdb}"]
+      test:
+        [
+          "CMD",
+          "pg_isready",
+          "-U",
+          "${POSTGRES_USER:-user}",
+          "-d",
+          "${POSTGRES_DB:-ragdb}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,15 +30,15 @@ services:
       - dev-network
 
   # Backend (published image)
-  backend:
-    image: dikshant04/careconnect-backend:latest
-    container_name: dev-backend
-    ports:
-      - "3000:3000"
-    env_file:
-      - ../backend/.env
-    networks:
-      - dev-network
+  # backend:
+  #   image: dikshant04/careconnect-backend:latest
+  #   container_name: dev-backend
+  #   ports:
+  #     - "3000:3000"
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - dev-network
 
   # AI server (local build + hot reload)
   ai-server:
