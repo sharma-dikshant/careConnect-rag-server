@@ -22,6 +22,7 @@ class VectorStoreService:
         db.commit()
 
     def search(
+        self,
         db: Session,
         query_embedding,
         doctor_id: int,
